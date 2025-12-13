@@ -92,18 +92,18 @@ jobs:
         ref: main
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v3
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
+    # ✅ THIS IS THE FIX — NO docker login command at all
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
     - name: Build Docker image
       run: docker build -t bank-frontend:latest .
-
-    # ✅ SINGLE-LINE COMMAND (PowerShell-safe)
-    - name: Login to Amazon ECR
-      run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 026764164788.dkr.ecr.us-east-1.amazonaws.com
 
     - name: Tag Docker image
       run: docker tag bank-frontend:latest ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}
@@ -141,4 +141,3 @@ jobs:
         git add kubernetes-manifest/bank-project/frontend.yaml
         git commit -m "Update frontend image to version ${{ github.run_number }}"
         git push origin main
-
