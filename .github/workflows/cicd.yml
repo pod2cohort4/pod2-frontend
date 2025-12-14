@@ -73,6 +73,8 @@
 #          git push origin main
 # # 
 
+# 
+
 name: Bank Frontend Pipeline
 
 on:
@@ -98,7 +100,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    # ✅ THIS IS THE FIX — NO docker login command at all
+    # ✅ Stable ECR login (no PowerShell issues)
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
@@ -125,22 +127,25 @@ jobs:
     needs: Continues-Integration_build_and_push
 
     steps:
-    - name: Clone repository and update manifest
+    - name: Clone Kubernetes manifest repo and update frontend image
       env:
         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
         GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
       run: |
-        git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/Benjasscloud/bank_frontend.git
-        cd bank_frontend
+        git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/Benjasscloud/kubernetes-manifest-file.git
+        cd kubernetes-manifest-file
 
         git config --global user.email "awsbenjass1@gmail.com"
         git config --global user.name "benjass1"
 
-        sed -i "s+${{ vars.ECR_REPO }}/bank-frontend:.*+${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}+g" kubernetes-manifest/bank-project/frontend.yaml
+        echo "Before update:"
+        cat bank-project/frontend.yaml
 
-        git add kubernetes-manifest/bank-project/frontend.yaml
-        git commit -m "Update frontend image to version ${{ github.run_number }}"
+        sed -i "s|image:.*bank-frontend:.*|image: ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}|g" bank-project/frontend.yaml
+
+        echo "After update:"
+        cat bank-project/frontend.yaml
+
+        git add bank-project/frontend.yaml
+        git commit -m "Update frontend image to version ${{ github.run_number }}" || echo "No changes to commit"
         git push origin main
-
-# 
-# 
