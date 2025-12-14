@@ -147,5 +147,10 @@ jobs:
         cat bank-project/frontend.yaml
 
         git add bank-project/frontend.yaml
-        git commit -m "Update frontend image to version ${{ github.run_number }}" || echo "No changes to commit"
-        git push origin main
+
+        if (-not (git diff --cached --quiet)) {
+           git commit -m "Update frontend image to version ${{ github.run_number }}"
+           git push origin main
+        } else {
+            Write-Host "No changes to commit"
+        }
