@@ -75,6 +75,86 @@
 
 # 
 
+# name: Bank Frontend Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   Continues-Integration_build_and_push:
+#     runs-on: self-hosted
+
+#     steps:
+#     - name: Checkout repository
+#       uses: actions/checkout@v3
+#       with:
+#         repository: pod2cohort4/pod2-frontend
+#         ref: main
+
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v4
+#       with:
+#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#         aws-region: us-east-1
+
+#     # ✅ Stable ECR login (no PowerShell issues)
+#     - name: Login to Amazon ECR
+#       uses: aws-actions/amazon-ecr-login@v2
+
+#     - name: Build Docker image
+#       run: docker build -t bank-frontend:latest .
+
+#     - name: Tag Docker image
+#       run: docker tag bank-frontend:latest ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}
+
+#     - name: Push image to ECR
+#       run: docker push ${{ vars.ECR_REPO }}:${{ github.run_number }}
+
+#     - name: Clean up Docker images locally
+#       run: |
+#         docker rmi bank-frontend:latest
+#         docker rmi ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}
+
+#     - name: Clean workspace
+#       run: |
+#         Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
+
+#   Continues-Update_k8s_manifest:
+#     runs-on: self-hosted
+#     needs: Continues-Integration_build_and_push
+
+#     steps:
+#     - name: Clone Kubernetes manifest repo and update frontend image
+#       env:
+#         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+#         GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+#       run: |
+#         git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
+#         cd pod2-kubernetes-manifest-file
+
+#         git config --global user.email "pod80619@gmail.com"
+#         git config --global user.name "pod2"
+
+#         echo "Before update:"
+#         cat bank-project/frontend.yaml
+
+#         sed -i "s|image:.*bank-frontend:.*|image: ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}|g" bank-project/frontend.yaml
+
+#         echo "After update:"
+#         cat bank-project/frontend.yaml
+
+#         git add bank-project/frontend.yaml
+
+#         if (-not (git diff --cached --quiet)) {
+#            git commit -m "Update frontend image to version ${{ github.run_number }}"
+#            git push origin main
+#         } else {
+#             Write-Host "No changes to commit"
+#         }
+
 name: Bank Frontend Pipeline
 
 on:
@@ -83,15 +163,12 @@ on:
       - main
 
 jobs:
-  Continues-Integration_build_and_push:
-    runs-on: self-hosted
+  Build_and_Push_Image:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-      with:
-        repository: pod2cohort4/pod2-frontend
-        ref: main
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -100,7 +177,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    # ✅ Stable ECR login (no PowerShell issues)
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
@@ -108,51 +184,31 @@ jobs:
       run: docker build -t bank-frontend:latest .
 
     - name: Tag Docker image
-      run: docker tag bank-frontend:latest ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}
+      run: docker tag bank-frontend:latest \
+           ${{ vars.ECR_REPO }}:${{ github.run_number }}
 
     - name: Push image to ECR
-      run: docker push ${{ vars.ECR_REPO }}:${{ github.run_number }}
+      run: docker push \
+           ${{ vars.ECR_REPO }}:${{ github.run_number }}
 
-    - name: Clean up Docker images locally
-      run: |
-        docker rmi bank-frontend:latest
-        docker rmi ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}
-
-    - name: Clean workspace
-      run: |
-        Remove-Item -Recurse -Force * -ErrorAction SilentlyContinue
-
-  Continues-Update_k8s_manifest:
-    runs-on: self-hosted
-    needs: Continues-Integration_build_and_push
+  Update_K8s_Manifest:
+    runs-on: ubuntu-latest
+    needs: Build_and_Push_Image
 
     steps:
-    - name: Clone Kubernetes manifest repo and update frontend image
+    - name: Update Kubernetes manifest repo
       env:
         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
         GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
       run: |
-        git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
+        git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
         cd pod2-kubernetes-manifest-file
 
-        git config --global user.email "pod80619@gmail.com"
-        git config --global user.name "pod2"
+        git config user.email "pod80619@gmail.com"
+        git config user.name "pod2"
 
-        echo "Before update:"
-        cat bank-project/frontend.yaml
-
-        sed -i "s|image:.*bank-frontend:.*|image: ${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}|g" bank-project/frontend.yaml
-
-        echo "After update:"
-        cat bank-project/frontend.yaml
+        sed -i "s|image:.*|image: ${{ vars.ECR_REPO }}:${{ github.run_number }}|g" bank-project/frontend.yaml
 
         git add bank-project/frontend.yaml
-
-        if (-not (git diff --cached --quiet)) {
-           git commit -m "Update frontend image to version ${{ github.run_number }}"
-           git push origin main
-        } else {
-            Write-Host "No changes to commit"
-        }
-
-# 
+        git commit -m "Update frontend image to version ${{ github.run_number }}"
+        git push origin main
