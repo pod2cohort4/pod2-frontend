@@ -155,6 +155,65 @@
 #             Write-Host "No changes to commit"
 #         }
 
+# name: Bank Frontend Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   Build_and_Push_Image:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - name: Checkout repository
+#       uses: actions/checkout@v3
+
+#     - name: Configure AWS credentials
+#       uses: aws-actions/configure-aws-credentials@v4
+#       with:
+#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#         aws-region: us-east-1
+
+#     - name: Login to Amazon ECR
+#       uses: aws-actions/amazon-ecr-login@v2
+
+#     - name: Build Docker image
+#       run: docker build -t bank-frontend:latest .
+
+#     - name: Tag Docker image
+#       run: docker tag bank-frontend:latest \
+#            ${{ vars.ECR_REPO }}:${{ github.run_number }}
+
+#     - name: Push image to ECR
+#       run: docker push \
+#            ${{ vars.ECR_REPO }}:${{ github.run_number }}
+
+#   Update_K8s_Manifest:
+#     runs-on: ubuntu-latest
+#     needs: Build_and_Push_Image
+
+#     steps:
+#     - name: Update Kubernetes manifest repo
+#       env:
+#         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+#         GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+#       run: |
+#         git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
+#         cd pod2-kubernetes-manifest-file
+
+#         git config user.email "pod80619@gmail.com"
+#         git config user.name "pod2"
+
+#         sed -i "s|image:.*|image: ${{ vars.ECR_REPO }}:${{ github.run_number }}|g" bank-project/frontend.yaml
+
+#         git add bank-project/frontend.yaml
+#         git commit -m "Update frontend image to version ${{ github.run_number }}"
+#         git push origin main
+
+
 name: Bank Frontend Pipeline
 
 on:
@@ -167,48 +226,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-    - name: Login to Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build Docker image
-      run: docker build -t bank-frontend:latest .
+      - name: Build Docker image
+        run: docker build -t bank-frontend:latest .
 
-    - name: Tag Docker image
-      run: docker tag bank-frontend:latest \
-           ${{ vars.ECR_REPO }}:${{ github.run_number }}
+      - name: Tag Docker image
+        run: docker tag bank-frontend:latest 608283507951.dkr.ecr.us-east-1.amazonaws.com/bank-frontend:${{ github.run_number }}
 
-    - name: Push image to ECR
-      run: docker push \
-           ${{ vars.ECR_REPO }}:${{ github.run_number }}
+      - name: Push image to ECR
+        run: docker push 608283507951.dkr.ecr.us-east-1.amazonaws.com/bank-frontend:${{ github.run_number }}
+
+      - name: Cleanup local images
+        run: |
+          docker rmi bank-frontend:latest || true
+          docker rmi 608283507951.dkr.ecr.us-east-1.amazonaws.com/bank-frontend:${{ github.run_number }} || true
 
   Update_K8s_Manifest:
     runs-on: ubuntu-latest
     needs: Build_and_Push_Image
 
     steps:
-    - name: Update Kubernetes manifest repo
-      env:
-        GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
-        GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
-      run: |
-        git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
-        cd pod2-kubernetes-manifest-file
+      - name: Update Kubernetes manifest repo
+        env:
+          GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+          GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
+        run: |
+          git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
+          cd pod2-kubernetes-manifest-file
 
-        git config user.email "pod80619@gmail.com"
-        git config user.name "pod2"
+          git config user.email "pod80619@gmail.com"
+          git config user.name "pod2"
 
-        sed -i "s|image:.*|image: ${{ vars.ECR_REPO }}:${{ github.run_number }}|g" bank-project/frontend.yaml
+          sed -i "s|image:.*|image: 608283507951.dkr.ecr.us-east-1.amazonaws.com/bank-frontend:${{ github.run_number }}|g" bank-project/frontend.yaml
 
-        git add bank-project/frontend.yaml
-        git commit -m "Update frontend image to version ${{ github.run_number }}"
-        git push origin main
+          git add bank-project/frontend.yaml
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update frontend image to version ${{ github.run_number }}"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
