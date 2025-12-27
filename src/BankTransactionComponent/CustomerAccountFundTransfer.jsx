@@ -24,7 +24,7 @@ const CustomerAccountFundTransfer = () => {
   };
 
   const saveAccount = (e) => {
-    fetch("https://bankapi.cohort4pod7cloud.online/api/bank/transaction/account/transfer", {
+    fetch("https://bankapi.pod2-c4.online/api/bank/transaction/account/transfer", {
       method: "POST",
       headers: {
         Accept: "application/json",

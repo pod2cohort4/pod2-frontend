@@ -61,8 +61,8 @@
 #          git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Benjasscloud/bank_frontend.git
          
 #          cd kubernetes-manifest
-#          git config --global user.email "awsbenjass1@gmail.com"
-#          git config --global user.name "benjass1"
+#          git config --global user.email "pod80619@gmail.com"
+#          git config --global user.name "pod2"
 
 #          sed -i "s+${{ vars.ECR_REPO }}/bank-frontend:.*+${{ vars.ECR_REPO }}/bank-frontend:${{ github.run_number }}+g" ./bank-project/frontend.yaml
 
@@ -90,7 +90,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        repository: Benjasscloud/bank_frontend
+        repository: pod2cohort4/pod2-frontend
         ref: main
 
     - name: Configure AWS credentials
@@ -132,11 +132,11 @@ jobs:
         GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
         GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
       run: |
-        git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/Benjasscloud/kubernetes-manifest-file.git
+        git clone https://${env:GIT_USERNAME}:${env:GIT_PASSWORD}@github.com/pod2cohort4/pod2-kubernetes-manifest-file.git
         cd kubernetes-manifest-file
 
-        git config --global user.email "awsbenjass1@gmail.com"
-        git config --global user.name "benjass1"
+        git config --global user.email "pod80619@gmail.com"
+        git config --global user.name "pod2"
 
         echo "Before update:"
         cat bank-project/frontend.yaml

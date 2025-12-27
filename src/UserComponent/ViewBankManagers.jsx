@@ -12,7 +12,7 @@ const ViewBankManagers = () => {
 
   const retrieveAllManagers = async () => {
     const response = await axios.get(
-      "https://bankapi.cohort4pod7cloud.online/api/user/fetch/role?role=BANK",
+      "https://bankapi.pod2-c4.online/api/user/fetch/role?role=BANK",
       {
         headers: {
           Authorization: "Bearer " + admin_jwtToken, // Replace with your actual JWT token

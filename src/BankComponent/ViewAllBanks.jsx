@@ -12,7 +12,7 @@ const ViewAllBanks = () => {
 
   const retrieveAllBanks = async () => {
     const response = await axios.get(
-      "https://bankapi.cohort4pod7cloud.online/api/bank/fetch/all",
+      "https://bankapi.pod2-c4.online/api/bank/fetch/all",
       {
         headers: {
           Authorization: "Bearer " + admin_jwtToken, // Replace with your actual JWT token

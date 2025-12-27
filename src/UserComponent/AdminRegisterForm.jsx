@@ -13,7 +13,7 @@
 //   };
 
 //   const loginAction = (e) => {
-//     fetch("https://bankapi.cohort4pod7cloud.online/api/user/admin/register", {
+//     fetch("https://bankapi.pod2-c4.online/api/user/admin/register", {
 //       method: "POST",
 //       headers: {
 //         Accept: "application/json",
@@ -143,7 +143,7 @@ const AdminRegisterForm = () => {
   };
 
   const loginAction = (e) => {
-    fetch("https://bankapi.cohort4pod7cloud.online/api/user/admin/register", {
+    fetch("https://bankapi.pod2-c4.online/api/user/admin/register", {
       method: "POST",
       headers: {
         Accept: "application/json",

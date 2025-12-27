@@ -13,7 +13,7 @@ const AddBankForm = () => {
   const retrieveAllBankUsers = async () => {
     try {
       const response = await axios.get(
-        "https://bankapi.cohort4pod7cloud.online/api/user/fetch/bank/managers",
+        "https://bankapi.pod2-c4.online/api/user/fetch/bank/managers",
         {
           headers: {
             Authorization: "Bearer " + admin_jwtToken, // Replace with your actual JWT token
@@ -56,7 +56,7 @@ const AddBankForm = () => {
   };
 
   const saveBank = (e) => {
-    fetch("https://bankapi.cohort4pod7cloud.online/api/bank/register", {
+    fetch("https://bankapi.pod2-c4.online/api/bank/register", {
       method: "POST",
       headers: {
         Accept: "application/json",
